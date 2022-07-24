@@ -33,6 +33,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/heroiclabs/nakama/v3/console"
+
 	"github.com/gofrs/uuid"
 	"github.com/heroiclabs/nakama/v3/ga"
 	"github.com/heroiclabs/nakama/v3/migrate"
@@ -136,12 +138,14 @@ func main() {
 	// Access to social provider integrations.
 	socialClient := social.NewClient(logger, 5*time.Second)
 
+	logger.Debug("Redis hostname", zap.String("hostname", config.GetSession().RedisCacheHostname))
+
 	// Start up server components.
 	cookie := newOrLoadCookie(config)
 	metrics := server.NewLocalMetrics(logger, startupLogger, db, config)
 	sessionRegistry := server.NewLocalSessionRegistry(metrics)
-	sessionCache := server.NewLocalSessionCache(config.GetSession().TokenExpirySec)
-	consoleSessionCache := server.NewLocalSessionCache(config.GetConsole().TokenExpirySec)
+	sessionCache := server.NewLocalSessionCache(config.GetSession().TokenExpirySec, logger)
+	consoleSessionCache := server.NewLocalSessionCache(config.GetConsole().TokenExpirySec, logger)
 	loginAttemptCache := server.NewLocalLoginAttemptCache()
 	statusRegistry := server.NewStatusRegistry(logger, config, sessionRegistry, jsonpbMarshaler)
 	tracker := server.StartLocalTracker(logger, config, sessionRegistry, statusRegistry, metrics, jsonpbMarshaler)
