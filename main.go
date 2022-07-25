@@ -137,14 +137,21 @@ func main() {
 	// Access to social provider integrations.
 	socialClient := social.NewClient(logger, 5*time.Second)
 
-	logger.Debug("Redis hostname", zap.String("hostname", config.GetSession().RedisCacheHostname))
-
 	// Start up server components.
 	cookie := newOrLoadCookie(config)
 	metrics := server.NewLocalMetrics(logger, startupLogger, db, config)
 	sessionRegistry := server.NewLocalSessionRegistry(metrics)
-	sessionCache := server.NewLocalSessionCache(config.GetSession().TokenExpirySec)
-	consoleSessionCache := server.NewLocalSessionCache(config.GetConsole().TokenExpirySec)
+
+	sessionCache := server.NewRedisSessionCache(config.GetSession().TokenExpirySec, config.GetSession().RedisHostname, config.GetSession().RedisPassword, 0)
+	if sessionCache == nil {
+		sessionCache = server.NewLocalSessionCache(config.GetSession().TokenExpirySec)
+	}
+
+	consoleSessionCache := server.NewRedisSessionCache(config.GetSession().TokenExpirySec, config.GetConsole().RedisHostname, config.GetConsole().RedisPassword, 1)
+	if sessionCache == nil {
+		consoleSessionCache = server.NewLocalSessionCache(config.GetConsole().TokenExpirySec)
+	}
+
 	loginAttemptCache := server.NewLocalLoginAttemptCache()
 	statusRegistry := server.NewStatusRegistry(logger, config, sessionRegistry, jsonpbMarshaler)
 	tracker := server.StartLocalTracker(logger, config, sessionRegistry, statusRegistry, metrics, jsonpbMarshaler)
