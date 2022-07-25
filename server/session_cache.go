@@ -16,9 +16,11 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/gofrs/uuid"
 )
 
@@ -182,3 +184,111 @@ func (s *LocalSessionCache) Ban(userIDs []uuid.UUID) {
 }
 
 func (s *LocalSessionCache) Unban(userIDs []uuid.UUID) {}
+
+type RedisSessionCache struct {
+	sync.RWMutex
+
+	ctx         context.Context
+	ctxCancelFn context.CancelFunc
+
+	client *redis.Client
+}
+
+func NewRedisSessionCache(tokenExpirySec int64, hostname string, password string, database int) SessionCache {
+	if hostname == "" {
+		return nil
+	}
+
+	ctx, ctxCancelFn := context.WithCancel(context.Background())
+
+	s := &RedisSessionCache{
+		ctx:         ctx,
+		ctxCancelFn: ctxCancelFn,
+		client: redis.NewClient(&redis.Options{
+			Addr:     fmt.Sprintf("%s:6379", hostname),
+			Password: password,
+			DB:       database,
+		}),
+	}
+
+	_, err := s.client.Ping(s.ctx).Result()
+	if err != nil {
+		ctxCancelFn()
+		return nil
+	}
+
+	return s
+}
+
+func (s *RedisSessionCache) Stop() {
+	_ = s.client.Close()
+	s.ctxCancelFn()
+}
+
+func (s *RedisSessionCache) IsValidSession(userID uuid.UUID, exp int64, token string) bool {
+	s.RLock()
+	exists, _ := s.client.Exists(s.ctx, SessionKey(userID)).Result()
+	s.RUnlock()
+	return exists > 0
+}
+
+func (s *RedisSessionCache) IsValidRefresh(userID uuid.UUID, exp int64, token string) bool {
+	s.RLock()
+	exists, _ := s.client.Exists(s.ctx, RefreshKey(userID)).Result()
+	s.RUnlock()
+	return exists > 0
+}
+
+func (s *RedisSessionCache) Add(userID uuid.UUID, sessionExp int64, sessionToken string, refreshExp int64, refreshToken string) {
+	s.Lock()
+
+	if sessionToken != "" {
+		s.client.Set(s.ctx, SessionKey(userID), sessionToken, time.Duration(sessionExp)*time.Second)
+	}
+
+	if refreshToken != "" {
+		s.client.Set(s.ctx, RefreshKey(userID), refreshToken, time.Duration(refreshExp)*time.Second)
+	}
+
+	s.Unlock()
+}
+
+func (s *RedisSessionCache) Remove(userID uuid.UUID, sessionExp int64, sessionToken string, refreshExp int64, refreshToken string) {
+	s.Lock()
+
+	if sessionToken != "" {
+		s.client.Del(s.ctx, SessionKey(userID))
+	}
+
+	if refreshToken != "" {
+		s.client.Del(s.ctx, RefreshKey(userID))
+	}
+
+	s.Unlock()
+}
+
+func (s *RedisSessionCache) RemoveAll(userID uuid.UUID) {
+	s.Lock()
+	s.client.Del(s.ctx, SessionKey(userID))
+	s.client.Del(s.ctx, RefreshKey(userID))
+	s.Unlock()
+}
+
+func (s *RedisSessionCache) Ban(userIDs []uuid.UUID) {
+	s.Lock()
+	for _, userID := range userIDs {
+		s.client.Del(s.ctx, SessionKey(userID))
+		s.client.Del(s.ctx, RefreshKey(userID))
+	}
+	s.Unlock()
+}
+
+func (s *RedisSessionCache) Unban(userIDs []uuid.UUID) {}
+
+func SessionKey(userID uuid.UUID) string {
+	return fmt.Sprintf("%s:token", userID)
+}
+
+func RefreshKey(userID uuid.UUID) string {
+	return fmt.Sprintf("%s:refresh", userID)
+}
