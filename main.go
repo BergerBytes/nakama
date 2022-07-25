@@ -32,8 +32,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/heroiclabs/nakama/v3/console"
-
 	"github.com/gofrs/uuid"
 	"github.com/heroiclabs/nakama/v3/ga"
 	"github.com/heroiclabs/nakama/v3/migrate"
@@ -144,15 +142,9 @@ func main() {
 
 	sessionCache := server.NewRedisSessionCache(config.GetSession().TokenExpirySec, config.GetSession().RedisHostname, config.GetSession().RedisPassword, 0)
 	if sessionCache == nil {
-		sessionCache = server.NewLocalSessionCache(config.GetSession().TokenExpirySec)
+		sessionCache = server.NewLocalSessionCache(config)
 	}
 
-	consoleSessionCache := server.NewRedisSessionCache(config.GetSession().TokenExpirySec, config.GetConsole().RedisHostname, config.GetConsole().RedisPassword, 1)
-	if sessionCache == nil {
-		consoleSessionCache = server.NewLocalSessionCache(config.GetConsole().TokenExpirySec)
-	}
-
-	loginAttemptCache := server.NewLocalLoginAttemptCache()
 	statusRegistry := server.NewStatusRegistry(logger, config, sessionRegistry, jsonpbMarshaler)
 	tracker := server.StartLocalTracker(logger, config, sessionRegistry, statusRegistry, metrics, jsonpbMarshaler)
 	router := server.NewLocalMessageRouter(sessionRegistry, tracker, jsonpbMarshaler)
