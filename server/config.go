@@ -629,7 +629,8 @@ type SessionConfig struct {
 	RefreshTokenExpirySec int64  `yaml:"refresh_token_expiry_sec" json:"refresh_token_expiry_sec" usage:"Refresh token expiry in seconds."`
 	SingleSocket          bool   `yaml:"single_socket" json:"single_socket" usage:"Only allow one socket per user. Older sessions are disconnected. Default false."`
 	SingleMatch           bool   `yaml:"single_match" json:"single_match" usage:"Only allow one match per user. Older matches receive a leave. Requires single socket to enable. Default false."`
-	RedisCacheHostname    string `yaml:"redis_cache_hostname" json:"redis_cache_hostname" usage:"Optional redis cache hostname."`
+	RedisHostname         string `yaml:"redis_hostname" json:"redis_hostname" usage:"Optional redis hostname."`
+	RedisPassword         string `yaml:"redis_password" json:"redis_password" usage:"Optional redis password."`
 }
 
 func NewSessionConfig() *SessionConfig {
@@ -889,6 +890,8 @@ type ConsoleConfig struct {
 	Password            string `yaml:"password" json:"password" usage:"Password for the embedded console. Default password is 'password'."`
 	TokenExpirySec      int64  `yaml:"token_expiry_sec" json:"token_expiry_sec" usage:"Token expiry in seconds. Default 86400."`
 	SigningKey          string `yaml:"signing_key" json:"signing_key" usage:"Key used to sign console session tokens."`
+	RedisHostname       string `yaml:"redis_hostname" json:"redis_hostname" usage:"Optional redis hostname."`
+	RedisPassword       string `yaml:"redis_password" json:"redis_password" usage:"Optional redis password."`
 }
 
 func NewConsoleConfig() *ConsoleConfig {
