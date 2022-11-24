@@ -20,7 +20,6 @@ import (
 	"encoding/binary"
 	"flag"
 	"fmt"
-	"github.com/heroiclabs/nakama/v3/console"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -32,6 +31,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/heroiclabs/nakama/v3/console"
 
 	"github.com/gofrs/uuid"
 	"github.com/heroiclabs/nakama/v3/ga"
@@ -143,9 +144,11 @@ func main() {
 
 	sessionCache := server.NewRedisSessionCache(config.GetSession().TokenExpirySec, config.GetSession().RedisHostname, config.GetSession().RedisPassword, 0)
 	if sessionCache == nil {
-		sessionCache = server.NewLocalSessionCache(config)
+		sessionCache = server.NewLocalSessionCache(config.GetSession().TokenExpirySec)
 	}
 
+	consoleSessionCache := server.NewLocalSessionCache(config.GetConsole().TokenExpirySec)
+	loginAttemptCache := server.NewLocalLoginAttemptCache()
 	statusRegistry := server.NewStatusRegistry(logger, config, sessionRegistry, jsonpbMarshaler)
 	tracker := server.StartLocalTracker(logger, config, sessionRegistry, statusRegistry, metrics, jsonpbMarshaler)
 	router := server.NewLocalMessageRouter(sessionRegistry, tracker, jsonpbMarshaler)
