@@ -20,7 +20,6 @@ import (
 	"encoding/binary"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -31,8 +30,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-
-	"github.com/heroiclabs/nakama/v3/console"
 
 	"github.com/gofrs/uuid"
 	"github.com/heroiclabs/nakama/v3/console"
