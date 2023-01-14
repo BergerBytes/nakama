@@ -191,24 +191,27 @@ type RedisSessionCache struct {
 	client *redis.Client
 }
 
-func NewRedisSessionCache(tokenExpirySec int64, hostname string, password string, database int) SessionCache {
-	if hostname == "" {
+func NewRedisSessionCache(address string) SessionCache {
+	if address == "" {
 		return nil
 	}
+
+	options, err := redis.ParseURL(address)
+	if err != nil {
+		return nil
+	}
+
+	options.DB = 472840
 
 	ctx, ctxCancelFn := context.WithCancel(context.Background())
 
 	s := &RedisSessionCache{
 		ctx:         ctx,
 		ctxCancelFn: ctxCancelFn,
-		client: redis.NewClient(&redis.Options{
-			Addr:     fmt.Sprintf("%s:6379", hostname),
-			Password: password,
-			DB:       database,
-		}),
+		client:      redis.NewClient(options),
 	}
 
-	_, err := s.client.Ping(s.ctx).Result()
+	_, err = s.client.Ping(s.ctx).Result()
 	if err != nil {
 		ctxCancelFn()
 		return nil

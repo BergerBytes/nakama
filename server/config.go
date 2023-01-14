@@ -646,8 +646,7 @@ type SessionConfig struct {
 	RefreshTokenExpirySec int64  `yaml:"refresh_token_expiry_sec" json:"refresh_token_expiry_sec" usage:"Refresh token expiry in seconds."`
 	SingleSocket          bool   `yaml:"single_socket" json:"single_socket" usage:"Only allow one socket per user. Older sessions are disconnected. Default false."`
 	SingleMatch           bool   `yaml:"single_match" json:"single_match" usage:"Only allow one match per user. Older matches receive a leave. Requires single socket to enable. Default false."`
-	RedisHostname         string `yaml:"redis_hostname" json:"redis_hostname" usage:"Optional redis hostname."`
-	RedisPassword         string `yaml:"redis_password" json:"redis_password" usage:"Optional redis password."`
+	RedisAddress          string `yaml:"redis_address" json:"redis_address" usage:"Optional redis address."`
 }
 
 func NewSessionConfig() *SessionConfig {

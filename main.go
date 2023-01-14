@@ -140,7 +140,7 @@ func main() {
 	metrics := server.NewLocalMetrics(logger, startupLogger, db, config)
 	sessionRegistry := server.NewLocalSessionRegistry(metrics)
 
-	sessionCache := server.NewRedisSessionCache(config.GetSession().TokenExpirySec, config.GetSession().RedisHostname, config.GetSession().RedisPassword, 0)
+	sessionCache := server.NewRedisSessionCache(config.GetSession().RedisAddress)
 	if sessionCache == nil {
 		sessionCache = server.NewLocalSessionCache(config.GetSession().TokenExpirySec)
 	}
