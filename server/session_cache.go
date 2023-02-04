@@ -200,6 +200,8 @@ func NewRedisSessionCache(address string, logger *zap.Logger) SessionCache {
 		return nil
 	}
 
+	logger.Info("Initializing Redis session cache", zap.String("address", address))
+
 	options, err := redis.ParseURL(address)
 	if err != nil {
 		return nil
@@ -219,8 +221,11 @@ func NewRedisSessionCache(address string, logger *zap.Logger) SessionCache {
 	_, err = s.client.Ping(s.ctx).Result()
 	if err != nil {
 		ctxCancelFn()
+		logger.Error("Could not initialize Redis session cache", zap.Error(err))
 		return nil
 	}
+
+	logger.Info("Redis session cache initialized")
 
 	return s
 }
