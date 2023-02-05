@@ -207,7 +207,7 @@ func NewRedisSessionCache(address string, logger *zap.Logger) SessionCache {
 		return nil
 	}
 
-	options.DB = 472840
+	options.DB = 0
 
 	ctx, ctxCancelFn := context.WithCancel(context.Background())
 
