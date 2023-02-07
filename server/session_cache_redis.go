@@ -33,19 +33,25 @@ const (
 	tokenKindRefresh = "refresh"
 )
 
-func NewRedisSessionCache(address string, logger *zap.Logger) SessionCache {
+func NewRedisSessionCache(address string, database int64, startupLogger *zap.Logger, logger *zap.Logger) SessionCache {
 	if address == "" {
 		return nil
 	}
 
-	logger.Info("Initializing Redis session cache", zap.String("address", address))
+	db := int(database)
+
+	if db < 0 || db > 15 {
+		startupLogger.Panic("Invalid Redis database number. Valid range is 0 - 15", zap.Int64("database", database))
+	}
+
+	startupLogger.Info("Initializing Redis session cache", zap.String("address", address), zap.Int64("database", database))
 
 	options, err := redis.ParseURL(address)
 	if err != nil {
 		return nil
 	}
 
-	options.DB = 0
+	options.DB = db
 
 	ctx, ctxCancelFn := context.WithCancel(context.Background())
 
@@ -59,11 +65,11 @@ func NewRedisSessionCache(address string, logger *zap.Logger) SessionCache {
 	_, err = s.client.Ping(s.ctx).Result()
 	if err != nil {
 		ctxCancelFn()
-		logger.Error("Could not initialize Redis session cache", zap.Error(err))
+		startupLogger.Error("Could not initialize Redis session cache", zap.Error(err))
 		return nil
 	}
 
-	logger.Info("Redis session cache initialized")
+	startupLogger.Info("Redis session cache initialized")
 
 	return s
 }

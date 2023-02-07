@@ -46,8 +46,8 @@ import (
 const cookieFilename = ".cookie"
 
 var (
-	version  string = "3.0.0"
-	commitID string = "dev"
+	version  = "3.0.0"
+	commitID = "dev"
 
 	// Shared utility components.
 	jsonpbMarshaler = &protojson.MarshalOptions{
@@ -140,7 +140,7 @@ func main() {
 	metrics := server.NewLocalMetrics(logger, startupLogger, db, config)
 	sessionRegistry := server.NewLocalSessionRegistry(metrics)
 
-	sessionCache := server.NewRedisSessionCache(config.GetSession().RedisAddress, logger)
+	sessionCache := server.NewRedisSessionCache(config.GetSession().RedisAddress, config.GetSession().RedisDatabase, startupLogger, logger)
 	if sessionCache == nil {
 		sessionCache = server.NewLocalSessionCache(config.GetSession().TokenExpirySec)
 	}
