@@ -41,13 +41,14 @@ func NewRedisSessionCache(address string, database int64, startupLogger *zap.Log
 	db := int(database)
 
 	if db < 0 || db > 15 {
-		startupLogger.Panic("Invalid Redis database number. Valid range is 0 - 15", zap.Int64("database", database))
+		startupLogger.Fatal("Invalid Redis database number. Valid range is 0 - 15", zap.Int64("database", database))
 	}
 
 	startupLogger.Info("Initializing Redis session cache", zap.String("address", address), zap.Int64("database", database))
 
 	options, err := redis.ParseURL(address)
 	if err != nil {
+		startupLogger.Fatal("Could not parse Redis address", zap.Error(err))
 		return nil
 	}
 
@@ -65,7 +66,7 @@ func NewRedisSessionCache(address string, database int64, startupLogger *zap.Log
 	_, err = s.client.Ping(s.ctx).Result()
 	if err != nil {
 		ctxCancelFn()
-		startupLogger.Error("Could not initialize Redis session cache", zap.Error(err))
+		startupLogger.Fatal("Could not initialize Redis session cache", zap.Error(err))
 		return nil
 	}
 
