@@ -1716,14 +1716,12 @@ func NewLocalBenchMatchmaker(logger, startupLogger *zap.Logger, config Config, r
 		ctx:         ctx,
 		ctxCancelFn: ctxCancelFn,
 
-		batch:          bluge.NewBatch(),
 		indexWriter:    indexWriter,
 		sessionTickets: make(map[string]map[string]struct{}),
 		partyTickets:   make(map[string]map[string]struct{}),
-		entries:        make(map[string][]*MatchmakerEntry),
 		indexes:        make(map[string]*MatchmakerIndex),
 		activeIndexes:  make(map[string]*MatchmakerIndex),
-		revCache:       make(map[string]map[string]bool),
+		revCache:       &MapOf[string, map[string]bool]{},
 	}
 
 	if tickerActive {
@@ -2440,26 +2438,31 @@ func BenchmarkMatchmakerProcessTickets100_min2_max2(b *testing.B) {
 	benchmarkMatchmakerProcessTickets(100, 50, 2, 2, b)
 }
 func BenchmarkMatchmakerProcessTickets500_min2_max2(b *testing.B) {
-	benchmarkMatchmakerProcessTickets(500, 5000, 2, 2, b)
+	benchmarkMatchmakerProcessTickets(500, 250, 2, 2, b)
 }
 
 func BenchmarkMatchmakerProcessTickets1_000_min2_max2(b *testing.B) {
-	benchmarkMatchmakerProcessTickets(1_000, 5000, 2, 2, b)
+	benchmarkMatchmakerProcessTickets(1_000, 100, 2, 2, b)
 }
-func BenchmarkMatchmakerProcessTickets10_000_min2_max2(b *testing.B) {
-	benchmarkMatchmakerProcessTickets(10_000, 5000, 2, 2, b)
-}
+
+//func BenchmarkMatchmakerProcessTickets10_000_min2_max2(b *testing.B) {
+//	benchmarkMatchmakerProcessTickets(10_000, 5000, 2, 2, b)
+//}
 
 /*func BenchmarkMatchmakerProcessTickets100_000_min2_max2(b *testing.B) {
 	benchmarkMatchmakerProcessTickets(100_000, 2, 2, b)
 }*/
 
-//func BenchmarkMatchmakerProcessTickets100_min4_max4(b *testing.B) {
-//	benchmarkMatchmakerProcessTickets(100, 4, 4, b)
-//}
-//func BenchmarkMatchmakerProcessTickets1_000_min4_max4(b *testing.B) {
-//	benchmarkMatchmakerProcessTickets(1_000, 4, 4, b)
-//}
+func BenchmarkMatchmakerProcessTickets100_min4_max10(b *testing.B) {
+	benchmarkMatchmakerProcessTickets(100, 10, 4, 10, b)
+}
+func BenchmarkMatchmakerProcessTickets500_min4_max10(b *testing.B) {
+	benchmarkMatchmakerProcessTickets(500, 50, 4, 10, b)
+}
+func BenchmarkMatchmakerProcessTickets1_000_min4_max10(b *testing.B) {
+	benchmarkMatchmakerProcessTickets(1_000, 100, 4, 10, b)
+}
+
 //func BenchmarkMatchmakerProcessTickets10_000_min4_max4(b *testing.B) {
 //	benchmarkMatchmakerProcessTickets(10_000, 4, 4, b)
 //}

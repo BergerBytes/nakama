@@ -3,6 +3,27 @@ All notable changes to this project are documented below.
 
 The format is based on [keep a changelog](http://keepachangelog.com) and this project uses [semantic versioning](http://semver.org).
 
+## [3.16.0] - 2023-04-18
+### Added
+- Add "tournamentRecordDelete" function to server frameworks.
+- Add "insecure" flag to runtime http functions to optionally skip TLS checks.
+- [Satori](https://heroiclabs.com/satori/) API available to Nakama server in all server frameworks.
+- New "MatchmakerOverride" hook to provide custom matching behaviour.
+
+### Changed
+- Improve graceful shutdown of Google IAP receipt processor.
+- If In-App Purchase validation contain mismatching user IDs, do not return an error.
+- Better handling of matchmaker operations while the interval process is in execution.
+- Add user ID param to Go runtime GroupUpdate function.
+- Build with Go 1.20.3 and use Debian bullseye-slim for base docker images.
+
+### Fixed
+- Consistent validation of override operator in runtime leaderboard record writes.
+- Correctly filter open/closed groups in the listing API.
+- Ensure direct message channel message list is correctly scoped to participants only.
+- Make next and previous cursor of leaderboard and tournament records around owner operations consistent with record listings.
+- Make next and previous cursor of leaderboard and tournament records haystack operations consistent with record listings.
+
 ## [3.15.0] - 2023-01-04
 ### Added
 - Allow the socket acceptor to read session tokens from request headers.
@@ -24,6 +45,7 @@ The format is based on [keep a changelog](http://keepachangelog.com) and this pr
 - Use stricter validation of method param in Lua server framework HTTP request function.
 - Disable SQL statement cache mode describe by default. This reverts to the same behaviour as before 3.14.0 release.
 - Build with Go 1.19.4 release.
+- Always log out and disconnect a user when it's deleted.
 
 ### Fixed
 - Fix response structure in purchase lookups by identifier.
@@ -43,6 +65,7 @@ The format is based on [keep a changelog](http://keepachangelog.com) and this pr
 - Fix In-App Purchase subscription notification handling.
 - Fix handling of party leader transition if previous leader and other members leave concurrently.
 - Fix exact enforcement of maximum party size.
+- Fix JS/Lua runtime base64Decode functions to pad input strings by default if needed.
 
 ## [3.14.0] - 2022-10-14
 ### Added
@@ -58,6 +81,7 @@ The format is based on [keep a changelog](http://keepachangelog.com) and this pr
 - Token and credentials as inputs on unlink operations are now optional.
 - Improve runtime IAP operation errors to include provider payload in error message.
 - Build with Go 1.19.2 release.
+- Disconnect users when they are banned from the console or runtime functions.
 
 ### Fixed
 - Observe the error if returned in storage list errors in JavaScript runtime.
