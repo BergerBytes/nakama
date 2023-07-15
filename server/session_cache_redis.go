@@ -53,6 +53,7 @@ func NewRedisSessionCache(address string, database int64, startupLogger *zap.Log
 	}
 
 	options.DB = db
+	options.DialTimeout = 10 * time.Second
 
 	ctx, ctxCancelFn := context.WithCancel(context.Background())
 
