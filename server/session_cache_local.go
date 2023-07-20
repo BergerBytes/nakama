@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
-	"github.com/gofrs/uuid"
+	"github.com/gofrs/uuid/v5"
 	"sync"
 	"time"
 )

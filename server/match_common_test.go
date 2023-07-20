@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofrs/uuid"
+	"github.com/gofrs/uuid/v5"
 	"github.com/heroiclabs/nakama-common/rtapi"
 	"github.com/heroiclabs/nakama-common/runtime"
 	"go.uber.org/atomic"
@@ -202,6 +202,7 @@ func (s *testMessageRouter) SendToPresenceIDs(_ *zap.Logger, presences []*Presen
 }
 func (s *testMessageRouter) SendToStream(*zap.Logger, PresenceStream, *rtapi.Envelope, bool) {}
 func (s *testMessageRouter) SendDeferred(*zap.Logger, []*DeferredMessage)                    {}
+func (s *testMessageRouter) SendToAll(*zap.Logger, *rtapi.Envelope, bool)                    {}
 
 // testTracker implements the Tracker interface and does nothing
 type testTracker struct{}
@@ -318,4 +319,7 @@ func (s *testSessionRegistry) Disconnect(ctx context.Context, sessionID uuid.UUI
 }
 
 func (s *testSessionRegistry) SingleSession(ctx context.Context, tracker Tracker, userID, sessionID uuid.UUID) {
+}
+
+func (s *testSessionRegistry) Range(fn func(session Session) bool) {
 }

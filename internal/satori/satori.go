@@ -1,3 +1,17 @@
+// Copyright 2023 The Nakama Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package satori
 
 import (
@@ -6,14 +20,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/golang-jwt/jwt/v4"
-	"github.com/heroiclabs/nakama-common/runtime"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/heroiclabs/nakama-common/runtime"
+	"go.uber.org/zap"
 )
 
 var _ runtime.Satori = &SatoriClient{}
@@ -158,7 +173,7 @@ func (s *SatoriClient) Authenticate(ctx context.Context, id string) error {
 // @summary Get identity properties.
 // @param ctx(type=context.Context) The context object represents information about the server and requester.
 // @param id(type=string) The identifier of the identity.
-// @return properties(type=*runtime.Properties) The identity properties.
+// @return properties(*runtime.Properties) The identity properties.
 // @return error(error) An optional error value if an error occurred.
 func (s *SatoriClient) PropertiesGet(ctx context.Context, id string) (*runtime.Properties, error) {
 	if s.invalidConfig {
@@ -204,7 +219,7 @@ func (s *SatoriClient) PropertiesGet(ctx context.Context, id string) (*runtime.P
 // @group satori
 // @summary Update identity properties.
 // @param ctx(type=context.Context) The context object represents information about the server and requester.
-// @oaram id(type=string) The identifier of the identity.
+// @param id(type=string) The identifier of the identity.
 // @param properties(type=*runtime.PropertiesUpdate) The identity properties to update.
 // @return error(error) An optional error value if an error occurred.
 func (s *SatoriClient) PropertiesUpdate(ctx context.Context, id string, properties *runtime.PropertiesUpdate) error {
@@ -260,7 +275,7 @@ func (e *event) setTimestamp() {
 // @group satori
 // @summary Publish an event.
 // @param ctx(type=context.Context) The context object represents information about the server and requester.
-// @oaram id(type=string) The identifier of the identity.
+// @param id(type=string) The identifier of the identity.
 // @param events(type=[]*runtime.Event) An array of events to publish.
 // @return error(error) An optional error value if an error occurred.
 func (s *SatoriClient) EventsPublish(ctx context.Context, id string, events []*runtime.Event) error {
@@ -311,9 +326,9 @@ func (s *SatoriClient) EventsPublish(ctx context.Context, id string, events []*r
 // @group satori
 // @summary List experiments.
 // @param ctx(type=context.Context) The context object represents information about the server and requester.
-// @oaram id(type=string) The identifier of the identity.
+// @param id(type=string) The identifier of the identity.
 // @param names(type=[]string, optional=true, default=[]) Optional list of experiment names to filter.
-// @return experiments(type=*runtime.ExperimentList) The experiment list.
+// @return experiments(*runtime.ExperimentList) The experiment list.
 // @return error(error) An optional error value if an error occurred.
 func (s *SatoriClient) ExperimentsList(ctx context.Context, id string, names ...string) (*runtime.ExperimentList, error) {
 	if s.invalidConfig {
@@ -367,9 +382,9 @@ func (s *SatoriClient) ExperimentsList(ctx context.Context, id string, names ...
 // @group satori
 // @summary List flags.
 // @param ctx(type=context.Context) The context object represents information about the server and requester.
-// @oaram id(type=string) The identifier of the identity.
+// @param id(type=string) The identifier of the identity.
 // @param names(type=[]string, optional=true, default=[]) Optional list of flag names to filter.
-// @return flags(type=*runtime.FlagList) The flag list.
+// @return flags(*runtime.FlagList) The flag list.
 // @return error(error) An optional error value if an error occurred.
 func (s *SatoriClient) FlagsList(ctx context.Context, id string, names ...string) (*runtime.FlagList, error) {
 	if s.invalidConfig {
@@ -423,9 +438,9 @@ func (s *SatoriClient) FlagsList(ctx context.Context, id string, names ...string
 // @group satori
 // @summary List live events.
 // @param ctx(type=context.Context) The context object represents information about the server and requester.
-// @oaram id(type=string) The identifier of the identity.
+// @param id(type=string) The identifier of the identity.
 // @param names(type=[]string, optional=true, default=[]) Optional list of live event names to filter.
-// @return liveEvents(type=*runtime.LiveEventsList) The live event list.
+// @return liveEvents(*runtime.LiveEventsList) The live event list.
 // @return error(error) An optional error value if an error occurred.
 func (s *SatoriClient) LiveEventsList(ctx context.Context, id string, names ...string) (*runtime.LiveEventList, error) {
 	if s.invalidConfig {

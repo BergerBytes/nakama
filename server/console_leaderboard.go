@@ -15,12 +15,15 @@
 package server
 
 import (
+	"bytes"
 	"context"
-	"github.com/heroiclabs/nakama-common/runtime"
+	"encoding/base64"
+	"encoding/gob"
 	"time"
 
-	"github.com/gofrs/uuid"
+	"github.com/gofrs/uuid/v5"
 	"github.com/heroiclabs/nakama-common/api"
+	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/heroiclabs/nakama/v3/console"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
@@ -30,8 +33,22 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func (s *ConsoleServer) ListLeaderboards(ctx context.Context, _ *emptypb.Empty) (*console.LeaderboardList, error) {
-	leaderboards := s.leaderboardCache.GetAllLeaderboards()
+func (s *ConsoleServer) ListLeaderboards(ctx context.Context, in *console.LeaderboardListRequest) (*console.LeaderboardList, error) {
+	var cursor *LeaderboardAllCursor
+	if in.Cursor != "" {
+		cb, err := base64.RawURLEncoding.DecodeString(in.Cursor)
+		if err != nil {
+			s.logger.Error("Error decoding leaderboard list cursor.", zap.String("cursor", in.Cursor), zap.Error(err))
+			return nil, status.Error(codes.InvalidArgument, "An error occurred while trying to decode leaderboard list request cursor.")
+		}
+		cursor = &LeaderboardAllCursor{}
+		if err := gob.NewDecoder(bytes.NewReader(cb)).Decode(&cursor); err != nil {
+			s.logger.Error("Error decoding leaderboard list cursor.", zap.String("cursor", in.Cursor), zap.Error(err))
+			return nil, status.Error(codes.InvalidArgument, "An error occurred while trying to decode leaderboard list request cursor.")
+		}
+	}
+
+	leaderboards, total, newCursor := s.leaderboardCache.ListAll(100, true, cursor)
 
 	resultList := make([]*console.Leaderboard, 0, len(leaderboards))
 	for _, l := range leaderboards {
@@ -44,8 +61,20 @@ func (s *ConsoleServer) ListLeaderboards(ctx context.Context, _ *emptypb.Empty) 
 			Tournament:    l.IsTournament(),
 		})
 	}
+	response := &console.LeaderboardList{
+		Leaderboards: resultList,
+		Total:        int32(total),
+	}
+	if newCursor != nil {
+		cursorBuf := &bytes.Buffer{}
+		if err := gob.NewEncoder(cursorBuf).Encode(newCursor); err != nil {
+			s.logger.Error("Error encoding leaderboard list cursor.", zap.Any("in", in), zap.Error(err))
+			return nil, status.Error(codes.Internal, "An error occurred while trying to list leaderboards.")
+		}
+		response.Cursor = base64.RawURLEncoding.EncodeToString(cursorBuf.Bytes())
+	}
 
-	return &console.LeaderboardList{Leaderboards: resultList}, nil
+	return response, nil
 }
 
 func (s *ConsoleServer) GetLeaderboard(ctx context.Context, in *console.LeaderboardRequest) (*console.Leaderboard, error) {
@@ -155,8 +184,9 @@ func (s *ConsoleServer) DeleteLeaderboard(ctx context.Context, in *console.Leade
 		return nil, status.Error(codes.InvalidArgument, "Expects a leaderboard ID")
 	}
 
-	if err := s.leaderboardCache.Delete(ctx, s.leaderboardRankCache, s.leaderboardScheduler, in.Id); err != nil {
-		// Logged internally
+	_, err := s.leaderboardCache.Delete(ctx, s.leaderboardRankCache, s.leaderboardScheduler, in.Id)
+	if err != nil {
+		// Logged internally.
 		return nil, status.Error(codes.Internal, "Error deleting leaderboard.")
 	}
 

@@ -24,8 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofrs/uuid"
-
+	"github.com/gofrs/uuid/v5"
 	"github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama/v3/social"
 	"github.com/jackc/pgconn"
@@ -225,13 +224,7 @@ func AuthenticateDevice(ctx context.Context, logger *zap.Logger, db *sql.DB, dev
 	// Create a new account.
 	userID := uuid.Must(uuid.NewV4()).String()
 
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		logger.Error("Could not begin database transaction.", zap.Error(err))
-		return "", "", false, status.Error(codes.Internal, "Error finding or creating user account.")
-	}
-
-	err = ExecuteInTx(ctx, tx, func() error {
+	err = ExecuteInTx(ctx, db, func(tx *sql.Tx) error {
 		query := `
 INSERT INTO users (id, username, create_time, update_time)
 SELECT $1 AS id,
@@ -624,6 +617,15 @@ func AuthenticateGameCenter(ctx context.Context, logger *zap.Logger, db *sql.DB,
 	return userID, username, true, nil
 }
 
+func RemapGoogleId(ctx context.Context, logger *zap.Logger, db *sql.DB, googleProfile social.GoogleProfile) error {
+	// Look for an account with original ID if different, and remap to new ID
+	var err error = nil
+	if len(googleProfile.GetOriginalGoogleId()) > 0 && googleProfile.GetGoogleId() != googleProfile.GetOriginalGoogleId() {
+		_, err = db.ExecContext(ctx, "UPDATE users SET google_id = $1 where google_id = $2", googleProfile.GetGoogleId(), googleProfile.GetOriginalGoogleId())
+	}
+	return err
+}
+
 func AuthenticateGoogle(ctx context.Context, logger *zap.Logger, db *sql.DB, client *social.Client, idToken, username string, create bool) (string, string, bool, error) {
 	googleProfile, err := client.CheckGoogleToken(ctx, idToken)
 	if err != nil {
@@ -642,9 +644,19 @@ func AuthenticateGoogle(ctx context.Context, logger *zap.Logger, db *sql.DB, cli
 	err = db.QueryRowContext(ctx, query, googleProfile.GetGoogleId()).Scan(&dbUserID, &dbUsername, &dbDisableTime, &dbDisplayName, &dbAvatarURL)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			err = RemapGoogleId(ctx, logger, db, googleProfile)
+			if err == nil {
+				err = db.QueryRowContext(ctx, query, googleProfile.GetGoogleId()).Scan(&dbUserID, &dbUsername, &dbDisableTime, &dbDisplayName, &dbAvatarURL)
+			}
+		}
+
+		if err == sql.ErrNoRows {
 			found = false
-		} else {
-			logger.Error("Error looking up user by Google ID.", zap.Error(err), zap.String("googleID", googleProfile.GetGoogleId()), zap.String("username", username), zap.Bool("create", create))
+		} else if err != nil {
+			logger.Error("Error looking up user by Google ID.", zap.Error(err),
+				zap.String("googleID", googleProfile.GetGoogleId()),
+				zap.String("originalGoogleID", googleProfile.GetOriginalGoogleId()),
+				zap.String("username", username), zap.Bool("create", create))
 			return "", "", false, status.Error(codes.Internal, "Error finding user account.")
 		}
 	}
@@ -829,13 +841,7 @@ func importSteamFriends(ctx context.Context, logger *zap.Logger, db *sql.DB, mes
 	}
 
 	var friendUserIDs []uuid.UUID
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		logger.Error("Could not begin database transaction.", zap.Error(err))
-		return status.Error(codes.Internal, "Error importing Steam friends.")
-	}
-
-	err = ExecuteInTx(ctx, tx, func() error {
+	err = ExecuteInTx(ctx, db, func(tx *sql.Tx) error {
 		if reset {
 			if err := resetUserFriends(ctx, tx, userID); err != nil {
 				logger.Error("Could not reset user friends", zap.Error(err))
@@ -911,13 +917,7 @@ func importFacebookFriends(ctx context.Context, logger *zap.Logger, db *sql.DB, 
 	}
 
 	var friendUserIDs []uuid.UUID
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		logger.Error("Could not begin database transaction.", zap.Error(err))
-		return status.Error(codes.Internal, "Error importing Facebook friends.")
-	}
-
-	err = ExecuteInTx(ctx, tx, func() error {
+	err = ExecuteInTx(ctx, db, func(tx *sql.Tx) error {
 		if reset {
 			if err := resetUserFriends(ctx, tx, userID); err != nil {
 				logger.Error("Could not reset user friends", zap.Error(err))

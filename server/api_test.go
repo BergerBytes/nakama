@@ -19,11 +19,15 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"net"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
-	"github.com/gofrs/uuid"
+	"github.com/gofrs/uuid/v5"
 	"github.com/heroiclabs/nakama-common/api"
 	"github.com/heroiclabs/nakama-common/rtapi"
 	"github.com/heroiclabs/nakama-common/runtime"
@@ -48,8 +52,9 @@ var (
 	protojsonUnmarshaler = &protojson.UnmarshalOptions{
 		DiscardUnknown: false,
 	}
-	metrics = NewLocalMetrics(logger, logger, nil, cfg)
-	_       = CheckConfig(logger, cfg)
+	metrics       = NewLocalMetrics(logger, logger, nil, cfg)
+	storageIdx, _ = NewLocalStorageIndex(logger, nil)
+	_             = CheckConfig(logger, cfg)
 )
 
 type DummyMessageRouter struct{}
@@ -60,6 +65,7 @@ func (d *DummyMessageRouter) SendDeferred(*zap.Logger, []*DeferredMessage) {
 func (d *DummyMessageRouter) SendToPresenceIDs(*zap.Logger, []*PresenceID, *rtapi.Envelope, bool) {
 }
 func (d *DummyMessageRouter) SendToStream(*zap.Logger, PresenceStream, *rtapi.Envelope, bool) {}
+func (d *DummyMessageRouter) SendToAll(*zap.Logger, *rtapi.Envelope, bool)                    {}
 
 type DummySession struct {
 	messages []*rtapi.Envelope
@@ -169,12 +175,34 @@ ON CONFLICT(id) DO NOTHING`, uid, uid.String()); err != nil {
 	}
 }
 
+func WaitForSocket(expected error, cfg *config) {
+	ports := []int{cfg.GetSocket().Port - 1, cfg.GetSocket().Port}
+
+	for _, port := range ports {
+		for {
+			conn, err := net.Dial("tcp", fmt.Sprintf(":%d", port))
+			if conn != nil {
+				_ = conn.Close()
+			}
+
+			if errors.Is(err, expected) {
+				break
+			}
+
+			time.Sleep(300 * time.Millisecond)
+		}
+	}
+}
+
 func NewAPIServer(t *testing.T, runtime *Runtime) (*ApiServer, *Pipeline) {
 	db := NewDB(t)
 	router := &DummyMessageRouter{}
 	tracker := &LocalTracker{}
+	sessionCache := NewLocalSessionCache(3600)
 	pipeline := NewPipeline(logger, cfg, db, protojsonMarshaler, protojsonUnmarshaler, nil, nil, nil, nil, nil, tracker, router, runtime)
-	apiServer := StartApiServer(logger, logger, db, protojsonMarshaler, protojsonUnmarshaler, cfg, "3.0.0", nil, nil, nil, nil, nil, nil, nil, nil, tracker, router, nil, metrics, pipeline, runtime)
+	apiServer := StartApiServer(logger, logger, db, protojsonMarshaler, protojsonUnmarshaler, cfg, "3.0.0", nil, storageIdx, nil, nil, nil, sessionCache, nil, nil, nil, tracker, router, nil, metrics, pipeline, runtime)
+
+	WaitForSocket(nil, cfg)
 	return apiServer, pipeline
 }
 
